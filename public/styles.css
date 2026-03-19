@@ -524,10 +524,19 @@ code {
 
 .toolbar {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 16px;
-  align-items: center;
+  align-items: stretch;
   margin-bottom: 20px;
+}
+
+.search-form-top {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.breadcrumb {
+  justify-content: space-between;
 }
 
 .proxy-layout {
@@ -746,7 +755,9 @@ code {
 }
 
 .search-form input {
-  min-width: 260px;
+  flex: 1 1 720px;
+  min-width: min(720px, 100%);
+  width: auto;
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);

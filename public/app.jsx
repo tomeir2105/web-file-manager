@@ -1364,28 +1364,8 @@ function App() {
         accept="*/*"
       />
 
-      <section className="stats-grid">
-        <article className="glass-panel stat-card">
-          <span>Folders</span>
-          <strong>{stats.folderCount}</strong>
-        </article>
-        <article className="glass-panel stat-card">
-          <span>Files</span>
-          <strong>{stats.fileCount}</strong>
-        </article>
-        <article className="glass-panel stat-card">
-          <span>Total Size</span>
-          <strong>{formatBytes(stats.totalSize)}</strong>
-        </article>
-      </section>
-
       <section className="glass-panel toolbar">
-        <div className="breadcrumb">
-          <span>Current:</span>
-          <code>{currentPath ? `${basePath}/${currentPath}` : basePath}</code>
-        </div>
-
-        <form className="search-form" onSubmit={handleSearchSubmit}>
+        <form className="search-form search-form-top" onSubmit={handleSearchSubmit}>
           <input
             type="search"
             placeholder="Search current folder"
@@ -1405,6 +1385,26 @@ function App() {
             {scanLoading ? 'Scanning...' : 'Auto Rename'}
           </button>
         </form>
+
+        <div className="breadcrumb">
+          <span>Current:</span>
+          <code>{currentPath ? `${basePath}/${currentPath}` : basePath}</code>
+        </div>
+      </section>
+
+      <section className="stats-grid">
+        <article className="glass-panel stat-card">
+          <span>Folders</span>
+          <strong>{stats.folderCount}</strong>
+        </article>
+        <article className="glass-panel stat-card">
+          <span>Files</span>
+          <strong>{stats.fileCount}</strong>
+        </article>
+        <article className="glass-panel stat-card">
+          <span>Total Size</span>
+          <strong>{formatBytes(stats.totalSize)}</strong>
+        </article>
       </section>
 
       <section className="glass-panel table-panel">
