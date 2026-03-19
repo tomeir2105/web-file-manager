@@ -30,6 +30,20 @@ The file manager is useful, but the proxy is one of the most powerful parts of t
 
 If the main reason you are running this app is traffic inspection, whitelist management, or torrent capture, the proxy page is the part to start with.
 
+## Screenshots
+
+### File Manager
+
+![File manager UI](images/file_manager.jpg)
+
+### Player
+
+![Built-in video player](images/player.jpg)
+
+### Proxy
+
+![Proxy manager UI](images/proxy.jpg)
+
 ## Project Structure
 
 - [server.js](/home/user/jellyfin-file-manager/server.js): Express app entry point
@@ -82,6 +96,22 @@ Main pages:
 
 - File manager: `http://localhost:3000/`
 - Proxy manager: `http://localhost:3000/proxy`
+
+## Proxy Setup On Your PC
+
+To actually inspect HTTPS traffic through the built-in MITM proxy, you need to do two things on the device or PC that will use it:
+
+1. Start the proxy from `http://<server-ip>:3000/proxy`
+2. Download the proxy CA certificate from the proxy page or `GET /api/proxy/ca-cert`
+3. Install and trust that certificate on the PC/device/browser that will use the proxy
+4. Configure that PC/device to use your server as its HTTP/HTTPS proxy
+
+Typical proxy settings:
+
+- Host: your Jellyfin File Manager server IP or hostname
+- Port: `3001` by default
+
+Without installing the generated certificate, HTTPS sites will fail certificate validation. Without configuring the PC to use the proxy, traffic will bypass the proxy completely and you will not see requests in the proxy logs.
 
 ## Docker
 
