@@ -280,6 +280,21 @@ async function buildDirectoryListing(currentPath, searchTerm = '') {
         const absoluteChildPath = path.join(directoryPath, entry.name);
         const childStat = await fs.stat(absoluteChildPath);
         const relativeChildPath = getRelativePath(absoluteChildPath);
+        let playableItem = null;
+
+        if (entry.isDirectory()) {
+          const childEntries = await fs.readdir(absoluteChildPath, { withFileTypes: true });
+          const mp4Files = childEntries.filter(
+            (childEntry) => childEntry.isFile() && path.extname(childEntry.name).toLowerCase() === VIDEO_EXTENSION
+          );
+
+          if (mp4Files.length === 1) {
+            playableItem = {
+              name: mp4Files[0].name,
+              path: toApiPath(path.join(relativeChildPath, mp4Files[0].name)),
+            };
+          }
+        }
 
         return {
           name: entry.name,
@@ -287,6 +302,7 @@ async function buildDirectoryListing(currentPath, searchTerm = '') {
           type: entry.isDirectory() ? 'folder' : 'file',
           size: entry.isDirectory() ? 0 : childStat.size,
           modified: childStat.mtime.toISOString(),
+          playableItem,
         };
       })
   );

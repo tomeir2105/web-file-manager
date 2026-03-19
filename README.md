@@ -2,21 +2,33 @@
 
 Express-based file manager and proxy control panel for a Raspberry Pi or small Linux host.
 
+The file manager is useful, but the proxy is one of the most powerful parts of this project: you can run a local MITM proxy from the web UI, manage whitelists and log filters, inspect traffic, download the generated CA certificate, and automatically capture torrent downloads for Transmission.
+
 ## What It Does
 
-- Browse and manage files under a configurable media root
-- Switch between a file manager page at `/` and a proxy manager page at `/proxy`
-- Upload, rename, delete, download, and preview files
-- Play `.mp4` files in the browser
-- Show `.srt` subtitle files inline as text
-- Scan for matching MP4/SRT pairs and apply guided rename suggestions
 - Start and stop a local MITM proxy from the web UI
 - Manage proxy whitelist entries from the web UI or flat file
 - Manage proxy log-filter entries from the web UI or flat file
 - View, copy, download, and clear proxy logs
 - Download the generated proxy CA certificate
 - Capture torrent downloads seen by the proxy and forward them to Transmission
+- Switch between a file manager page at `/` and a proxy manager page at `/proxy`
+- Browse and manage files under a configurable media root
+- Upload, rename, delete, download, and preview files
+- Play `.mp4` files in the browser
+- Show `.srt` subtitle files inline as text
+- Scan for matching MP4/SRT pairs and apply guided rename suggestions
 - Upload an application update zip and trigger a service restart
+
+## Proxy Highlights
+
+- Web UI at `/proxy` for start, stop, monitoring, and configuration
+- Flat-file backed whitelist and log-filter management, with live updates for new requests
+- Built-in activity log viewer with copy, download, and clear actions
+- Downloadable CA certificate for devices that need to trust the proxy
+- Torrent capture pipeline that can hand matching downloads to Transmission automatically
+
+If the main reason you are running this app is traffic inspection, whitelist management, or torrent capture, the proxy page is the part to start with.
 
 ## Project Structure
 
@@ -65,6 +77,11 @@ Default app URL:
 ```text
 http://localhost:3000
 ```
+
+Main pages:
+
+- File manager: `http://localhost:3000/`
+- Proxy manager: `http://localhost:3000/proxy`
 
 ## Docker
 

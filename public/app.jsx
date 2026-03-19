@@ -17,6 +17,7 @@ const formatDate = (value) => {
 };
 
 const isSubtitleFile = (name) => name.toLowerCase().endsWith('.srt');
+const isVideoFile = (name) => name.toLowerCase().endsWith('.mp4');
 const APP_VERSION = '1.0.0';
 const stripLogTimestamp = (entry) => String(entry || '').replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '');
 const truncateLogLine = (entry, maxLength = 80) => {
@@ -1470,13 +1471,13 @@ function App() {
                     <td>{formatDate(item.modified)}</td>
                     <td>
                       <div className="action-group">
-                        {item.type === 'file' && item.name.toLowerCase().endsWith('.mp4') ? (
+                        {((item.type === 'file' && isVideoFile(item.name)) || item.playableItem?.path) ? (
                           <button
                             className="button inline secondary-inline"
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handlePlay(item);
+                              handlePlay(item.playableItem || item);
                             }}
                           >
                             Play
