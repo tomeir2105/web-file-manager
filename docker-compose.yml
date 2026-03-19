@@ -10,7 +10,7 @@ services:
       PORT: 3000
       PROXY_PORT: 3001
       FILE_MANAGER_USERNAME: admin
-      FILE_MANAGER_PASSWORD: change-me
+      FILE_MANAGER_PASSWORD: ab132678c!!!
       FILE_MANAGER_ROOT: /media
       APP_CONFIG_FILE: /data/app.config.json
       PROXY_CA_DIR: /data/proxy-ca

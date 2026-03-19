@@ -13,3 +13,5 @@ torrent files
 torrents
 transmission.config.json
 app.config.json
+auth.config.json
+data

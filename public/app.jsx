@@ -114,6 +114,11 @@ function App() {
   const [logEntryIsRegex, setLogEntryIsRegex] = useState(false);
   const [logEntrySubmitting, setLogEntrySubmitting] = useState(false);
   const [rootPathLoading, setRootPathLoading] = useState(false);
+  const [passwordSetupRequired, setPasswordSetupRequired] = useState(false);
+  const [passwordSetupLoading, setPasswordSetupLoading] = useState(true);
+  const [passwordSetupPassword, setPasswordSetupPassword] = useState('');
+  const [passwordSetupConfirm, setPasswordSetupConfirm] = useState('');
+  const [passwordSetupSubmitting, setPasswordSetupSubmitting] = useState(false);
   const [floatingToolsPosition, setFloatingToolsPosition] = useState({ x: 24, y: 160 });
   const [serviceStatus, setServiceStatus] = useState({
     service: 'jellyfin-file-manager',
@@ -163,6 +168,17 @@ function App() {
       port: Number(payload.port) || fallbackStatus.port || 3001,
       startedAt: payload.startedAt || null,
     });
+  };
+
+  const fetchAuthStatus = async () => {
+    try {
+      const payload = await callJson('/api/auth/status');
+      setPasswordSetupRequired(Boolean(payload.passwordChangeRequired));
+    } catch (error) {
+      showNotification('error', error.message);
+    } finally {
+      setPasswordSetupLoading(false);
+    }
   };
 
   const fetchDirectory = async (targetPath = currentPath, searchTerm = search) => {
@@ -304,6 +320,7 @@ function App() {
 
   useEffect(() => {
     document.title = isProxyPage ? 'Proxy Manager' : '/mnt File Manager';
+    fetchAuthStatus();
     fetchServiceStatus();
     fetchProxyStatus();
 
@@ -316,6 +333,47 @@ function App() {
       fetchRootPath();
     }
   }, []);
+
+  const handlePasswordSetupSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!passwordSetupPassword.trim()) {
+      showNotification('error', 'Enter a new password first');
+      return;
+    }
+
+    if (passwordSetupPassword !== passwordSetupConfirm) {
+      showNotification('error', 'The new password and confirmation do not match');
+      return;
+    }
+
+    setPasswordSetupSubmitting(true);
+    try {
+      const payload = await callJson('/api/auth/bootstrap-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: passwordSetupPassword,
+          confirmPassword: passwordSetupConfirm,
+        }),
+      });
+
+      setPasswordSetupRequired(false);
+      setPasswordSetupPassword('');
+      setPasswordSetupConfirm('');
+      showNotification('success', payload.message || 'Password updated');
+
+      if (payload.reauthenticate) {
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    } catch (error) {
+      showNotification('error', error.message);
+    } finally {
+      setPasswordSetupSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!isProxyPage) {
@@ -2098,6 +2156,55 @@ function App() {
                 autoPlay
                 src={`/api/files/show?path=${encodeURIComponent(playerItem.path)}`}
               />
+            </section>
+          </div>
+        )}
+
+        {!passwordSetupLoading && passwordSetupRequired && (
+          <div className="rename-modal-backdrop password-setup-backdrop">
+            <section className="glass-panel rename-modal password-setup-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="rename-panel-header">
+                <div>
+                  <p className="eyebrow">Security Setup</p>
+                  <h2>Replace the default password</h2>
+                  <p className="subtle">
+                    This install is still using <code>change-me</code>. Set a real password before using the app.
+                  </p>
+                </div>
+              </div>
+
+              <form className="password-setup-form" onSubmit={handlePasswordSetupSubmit}>
+                <label className="rename-field">
+                  <span>New password</span>
+                  <input
+                    type="password"
+                    value={passwordSetupPassword}
+                    onChange={(event) => setPasswordSetupPassword(event.target.value)}
+                    autoComplete="new-password"
+                    disabled={passwordSetupSubmitting}
+                  />
+                </label>
+                <label className="rename-field">
+                  <span>Confirm password</span>
+                  <input
+                    type="password"
+                    value={passwordSetupConfirm}
+                    onChange={(event) => setPasswordSetupConfirm(event.target.value)}
+                    autoComplete="new-password"
+                    disabled={passwordSetupSubmitting}
+                  />
+                </label>
+
+                <div className="password-setup-note">
+                  After saving, the page will reload and your browser will ask you to sign in again with the new password.
+                </div>
+
+                <div className="rename-actions">
+                  <button className="button primary" type="submit" disabled={passwordSetupSubmitting}>
+                    {passwordSetupSubmitting ? 'Saving...' : 'Save New Password'}
+                  </button>
+                </div>
+              </form>
             </section>
           </div>
         )}

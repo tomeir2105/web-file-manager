@@ -1091,6 +1091,27 @@ code {
   padding: 20px;
 }
 
+.password-setup-backdrop {
+  z-index: 40;
+}
+
+.password-setup-modal {
+  width: min(560px, 100%);
+  padding: 24px;
+}
+
+.password-setup-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.password-setup-note {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .player-video {
   width: 100%;
   margin-top: 18px;

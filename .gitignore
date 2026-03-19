@@ -5,6 +5,8 @@ tmp-proxy-ca/
 torrent files/
 torrents/
 transmission.config.json
+auth.config.json
+data/
 .env
 .env.local
 .DS_Store

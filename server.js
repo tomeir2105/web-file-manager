@@ -6,6 +6,8 @@ const {
   applySecurityHeaders,
   createAuthMiddleware,
   createSecurityConfig,
+  getAuthStatus,
+  updateBasicPassword,
 } = require('./middleware/security');
 const proxyRouter = require('./routes/proxy');
 const { autoStartProxy } = require('./routes/proxy');
@@ -19,10 +21,38 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(applySecurityHeaders);
-app.use(createAuthMiddleware(securityConfig));
 app.use(express.json({ limit: process.env.MAX_JSON_BODY_BYTES || '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: process.env.MAX_FORM_BODY_BYTES || '1mb' }));
+app.use(createAuthMiddleware(securityConfig));
 app.use('/public', express.static(path.join(__dirname, 'public')));
+
+app.get('/api/auth/status', (req, res) => {
+  res.json(getAuthStatus(securityConfig));
+});
+
+app.post('/api/auth/bootstrap-password', (req, res, next) => {
+  try {
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword : '';
+
+    if (password !== confirmPassword) {
+      const error = new Error('The passwords do not match.');
+      error.status = 400;
+      error.expose = true;
+      throw error;
+    }
+
+    updateBasicPassword(securityConfig, password);
+
+    res.json({
+      message: 'Password updated. Sign in again with the new password.',
+      reauthenticate: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use('/api/files', filesRouter);
 app.use('/api/proxy', proxyRouter);
 
