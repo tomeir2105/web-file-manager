@@ -17,7 +17,7 @@ const formatDate = (value) => {
 };
 
 const isSubtitleFile = (name) => name.toLowerCase().endsWith('.srt');
-const isVideoFile = (name) => name.toLowerCase().endsWith('.mp4');
+const isVideoFile = (name) => ['.mp4', '.mkv'].some((extension) => name.toLowerCase().endsWith(extension));
 const APP_VERSION = '1.0.0';
 const stripLogTimestamp = (entry) => String(entry || '').replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '');
 const truncateLogLine = (entry, maxLength = 80) => {
@@ -488,6 +488,17 @@ function App() {
 
     return sorted;
   }, [items, sortDirection, sortKey]);
+
+  const currentPathSegments = useMemo(() => {
+    const segments = currentPath
+      ? currentPath.split('/').filter(Boolean).map((segment, index, allSegments) => ({
+          label: segment,
+          path: allSegments.slice(0, index + 1).join('/'),
+        }))
+      : [];
+
+    return [{ label: basePath, path: '' }, ...segments];
+  }, [basePath, currentPath]);
 
   const setSort = (key) => {
     if (sortKey === key) {
@@ -1385,11 +1396,6 @@ function App() {
             {scanLoading ? 'Scanning...' : 'Auto Rename'}
           </button>
         </form>
-
-        <div className="breadcrumb">
-          <span>Current:</span>
-          <code>{currentPath ? `${basePath}/${currentPath}` : basePath}</code>
-        </div>
       </section>
 
       <section className="stats-grid">
@@ -1409,6 +1415,24 @@ function App() {
 
       <section className="glass-panel table-panel">
         {notification && <div className={`notice ${notification.type}`}>{notification.message}</div>}
+        <div className="table-current-path">
+          <span>Current:</span>
+          <div className="path-breadcrumbs">
+            {currentPathSegments.map((segment, index) => (
+              <React.Fragment key={`${segment.path || 'root'}-${index}`}>
+                {index > 0 ? <span className="path-separator">/</span> : null}
+                <button
+                  className="path-segment-button"
+                  type="button"
+                  onClick={() => openFolder(segment.path)}
+                  disabled={loading}
+                >
+                  {segment.label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
 
         {loading ? (
           <div className="empty-state">Loading directory...</div>
@@ -1467,7 +1491,7 @@ function App() {
                       )}
                     </td>
                     <td>{item.type}</td>
-                    <td>{item.type === 'folder' ? '-' : formatBytes(item.size)}</td>
+                    <td>{formatBytes(item.size)}</td>
                     <td>{formatDate(item.modified)}</td>
                     <td>
                       <div className="action-group">

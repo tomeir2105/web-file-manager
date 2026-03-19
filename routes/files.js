@@ -26,6 +26,7 @@ const router = express.Router();
 const execFileAsync = promisify(execFile);
 
 const VIDEO_EXTENSION = '.mp4';
+const PLAYABLE_VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv']);
 const SUBTITLE_EXTENSION = '.srt';
 const ZIP_EXTENSION = '.zip';
 const APP_UPDATE_TARGET_DIR =
@@ -109,6 +110,32 @@ async function statSafe(targetPath) {
     }
     throw error;
   }
+}
+
+async function getDirectorySize(targetPath) {
+  const entries = await fs.readdir(targetPath, { withFileTypes: true });
+  const sizes = await Promise.all(
+    entries.map(async (entry) => {
+      const entryPath = path.join(targetPath, entry.name);
+
+      if (entry.isDirectory()) {
+        return getDirectorySize(entryPath);
+      }
+
+      if (entry.isFile()) {
+        const entryStat = await fs.stat(entryPath);
+        return entryStat.size;
+      }
+
+      return 0;
+    })
+  );
+
+  return sizes.reduce((sum, size) => sum + size, 0);
+}
+
+function isPlayableVideoExtension(extension) {
+  return PLAYABLE_VIDEO_EXTENSIONS.has(String(extension || '').toLowerCase());
 }
 
 async function cleanupSafe(targetPath) {
@@ -284,14 +311,14 @@ async function buildDirectoryListing(currentPath, searchTerm = '') {
 
         if (entry.isDirectory()) {
           const childEntries = await fs.readdir(absoluteChildPath, { withFileTypes: true });
-          const mp4Files = childEntries.filter(
-            (childEntry) => childEntry.isFile() && path.extname(childEntry.name).toLowerCase() === VIDEO_EXTENSION
+          const playableVideoFiles = childEntries.filter(
+            (childEntry) => childEntry.isFile() && isPlayableVideoExtension(path.extname(childEntry.name))
           );
 
-          if (mp4Files.length === 1) {
+          if (playableVideoFiles.length === 1) {
             playableItem = {
-              name: mp4Files[0].name,
-              path: toApiPath(path.join(relativeChildPath, mp4Files[0].name)),
+              name: playableVideoFiles[0].name,
+              path: toApiPath(path.join(relativeChildPath, playableVideoFiles[0].name)),
             };
           }
         }
@@ -300,7 +327,7 @@ async function buildDirectoryListing(currentPath, searchTerm = '') {
           name: entry.name,
           path: toApiPath(relativeChildPath),
           type: entry.isDirectory() ? 'folder' : 'file',
-          size: entry.isDirectory() ? 0 : childStat.size,
+          size: entry.isDirectory() ? await getDirectorySize(absoluteChildPath) : childStat.size,
           modified: childStat.mtime.toISOString(),
           playableItem,
         };

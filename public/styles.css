@@ -535,10 +535,6 @@ code {
   width: 100%;
 }
 
-.breadcrumb {
-  justify-content: space-between;
-}
-
 .proxy-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -752,6 +748,49 @@ code {
   font-size: 0.76rem;
   font-weight: 700;
   text-transform: lowercase;
+}
+
+.table-current-path {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+
+.path-breadcrumbs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.path-separator {
+  color: var(--muted);
+}
+
+.path-segment-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.path-segment-button:hover {
+  color: var(--accent);
+}
+
+.path-segment-button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.path-breadcrumbs code,
+.table-current-path code {
+  word-break: break-word;
 }
 
 .search-form input {
