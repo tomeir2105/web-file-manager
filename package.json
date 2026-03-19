@@ -1,0 +1,16 @@
+{
+  "name": "jellyfin-file-manager",
+  "version": "1.0.0",
+  "description": "Express-based file manager and proxy control panel for Jellyfin hosts",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "extract-zip": "^2.0.1",
+    "http-mitm-proxy": "^1.1.0",
+    "multer": "^1.4.5-lts.2"
+  }
+}

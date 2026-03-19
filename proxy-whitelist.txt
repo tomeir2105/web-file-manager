@@ -1,0 +1,11 @@
+# One host per line. Lines starting with # are ignored.
+ajax.cloudflare.com
+cdnjs.cloudflare.com
+challenges.cloudflare.com
+google.com
+googlevideo.com
+regex:^.{13,15}$\.cloudfront.net$
+search.brave.com
+static.cloudflareinsights.com
+youtube.com
+yts.proxyninja.org

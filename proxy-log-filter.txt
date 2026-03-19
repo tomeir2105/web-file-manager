@@ -1,0 +1,2 @@
+# One host per line to hide matching traffic from the proxy activity log.
+yts.proxyninja.org
