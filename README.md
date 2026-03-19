@@ -1,4 +1,4 @@
-# Jellyfin File Manager
+# Web File Manager for Pi
 
 Express-based file manager and proxy control panel for a Raspberry Pi or small Linux host.
 
@@ -108,7 +108,7 @@ To actually inspect HTTPS traffic through the built-in MITM proxy, you need to d
 
 Typical proxy settings:
 
-- Host: your Jellyfin File Manager server IP or hostname
+- Host: your Web File Manager for Pi server IP or hostname
 - Port: `3001` by default
 
 Without installing the generated certificate, HTTPS sites will fail certificate validation. Without configuring the PC to use the proxy, traffic will bypass the proxy completely and you will not see requests in the proxy logs.
