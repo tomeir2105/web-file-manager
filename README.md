@@ -66,6 +66,45 @@ Default app URL:
 http://localhost:3000
 ```
 
+## Docker
+
+Build and run the app directly with Docker:
+
+```bash
+docker build -t web-file-manager .
+docker run --name web-file-manager \
+  -p 3000:3000 \
+  -p 3001:3001 \
+  -e APP_BIND_HOST=0.0.0.0 \
+  -e FILE_MANAGER_USERNAME=admin \
+  -e FILE_MANAGER_PASSWORD=change-me \
+  -e FILE_MANAGER_ROOT=/media \
+  -e APP_CONFIG_FILE=/data/app.config.json \
+  -e PROXY_CA_DIR=/data/proxy-ca \
+  -e PROXY_LOG_FILE=/data/proxy-requests.log \
+  -e PROXY_WHITELIST_FILE=/data/proxy-whitelist.txt \
+  -e PROXY_LOG_FILTER_FILE=/data/proxy-log-filter.txt \
+  -e TORRENT_CAPTURE_DIR=/data/torrents \
+  -e TRANSMISSION_CONFIG_FILE=/data/transmission.config.json \
+  -v "$(pwd)/data:/data" \
+  -v /mnt/storage/jellyfin/media:/media \
+  --restart unless-stopped \
+  web-file-manager
+```
+
+Or with Docker Compose:
+
+```bash
+docker compose up -d --build
+```
+
+Container notes:
+
+- `docker-compose.yml` mounts `./data` for persistent app state, logs, proxy CA files, and Transmission defaults.
+- Update `FILE_MANAGER_USERNAME` and `FILE_MANAGER_PASSWORD` before exposing the container on your network.
+- The file-manager root is mounted from `/mnt/storage/jellyfin/media` on the host into `/media` inside the container.
+- Service restart and `systemctl`-based status checks are intended for host installs and may report `offline` inside containers unless you wire in a custom `APP_UPDATE_RESTART_CMD`.
+
 ## Main Environment Variables
 
 - `HOST` or `APP_BIND_HOST`

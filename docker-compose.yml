@@ -1,0 +1,26 @@
+services:
+  web-file-manager:
+    build: .
+    container_name: web-file-manager
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      APP_BIND_HOST: 0.0.0.0
+      PORT: 3000
+      PROXY_PORT: 3001
+      FILE_MANAGER_USERNAME: admin
+      FILE_MANAGER_PASSWORD: change-me
+      FILE_MANAGER_ROOT: /media
+      APP_CONFIG_FILE: /data/app.config.json
+      PROXY_CA_DIR: /data/proxy-ca
+      PROXY_LOG_FILE: /data/proxy-requests.log
+      PROXY_WHITELIST_FILE: /data/proxy-whitelist.txt
+      PROXY_LOG_FILTER_FILE: /data/proxy-log-filter.txt
+      TORRENT_CAPTURE_DIR: /data/torrents
+      TRANSMISSION_CONFIG_FILE: /data/transmission.config.json
+      ALLOW_UNAUTHENTICATED: "false"
+    volumes:
+      - ./data:/data
+      - /mnt/storage/jellyfin/media:/media
+    restart: unless-stopped
