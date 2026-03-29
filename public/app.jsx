@@ -1497,7 +1497,7 @@ function App() {
                       <div className="action-group">
                         {((item.type === 'file' && isVideoFile(item.name)) || item.playableItem?.path) ? (
                           <button
-                            className="button inline secondary-inline"
+                            className="button inline success"
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -1507,7 +1507,7 @@ function App() {
                             Play
                           </button>
                         ) : null}
-                        {item.type === 'file' ? (
+                        {item.type === 'file' && !isVideoFile(item.name) ? (
                           <button
                             className="button inline secondary-inline"
                             type="button"

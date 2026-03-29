@@ -854,9 +854,16 @@ code {
   color: var(--text);
 }
 
+.button.inline.success {
+  background: linear-gradient(135deg, #34d399, #16a34a);
+  color: #04130b;
+  font-weight: 800;
+}
+
 .button.inline.danger {
-  background: rgba(255, 111, 145, 0.16);
-  color: #ffd4de;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff1f2;
+  font-weight: 800;
 }
 
 .icon-button {
@@ -882,8 +889,8 @@ code {
 }
 
 .button.danger-outline {
-  background: rgba(255, 111, 145, 0.16);
-  color: #ffd4de;
+  background: rgba(239, 68, 68, 0.18);
+  color: #ffe4e6;
 }
 
 .hidden-input {
