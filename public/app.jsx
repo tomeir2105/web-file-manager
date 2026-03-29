@@ -152,10 +152,13 @@ function App() {
 
   const callJson = async (url, options) => {
     const response = await fetch(url, options);
-    const payload = await response.json().catch(() => ({}));
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    const payload = contentType.includes('application/json')
+      ? await response.json().catch(() => ({}))
+      : { error: (await response.text().catch(() => '')).trim() };
 
     if (!response.ok) {
-      throw new Error(payload.error || 'Request failed');
+      throw new Error(payload.error || response.statusText || 'Request failed');
     }
 
     return payload;
@@ -588,15 +591,10 @@ function App() {
     formData.append('path', currentPath);
 
     await withAction(async () => {
-      const response = await fetch('/api/files/upload', {
+      await callJson('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'Upload failed');
-      }
     }, 'File uploaded');
 
     event.target.value = '';
@@ -620,15 +618,10 @@ function App() {
 
     setUpdateLoading(true);
     try {
-      const response = await fetch('/api/files/app-update', {
+      const payload = await callJson('/api/files/app-update', {
         method: 'POST',
         body: formData,
       });
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.error || 'App update failed');
-      }
 
       showNotification('success', payload.message || 'Application updated successfully');
       await fetchServiceStatus();

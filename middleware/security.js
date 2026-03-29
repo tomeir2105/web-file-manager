@@ -76,6 +76,10 @@ function safeEqual(left, right) {
 
 function unauthorized(res, challenge = 'Basic realm="Jellyfin File Manager"') {
   res.set('WWW-Authenticate', challenge);
+  if (res.req && String(res.req.path || '').startsWith('/api/')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   return res.status(401).send('Authentication required');
 }
 
