@@ -1874,7 +1874,7 @@ function App() {
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path
-                    d="M12 4v9"
+                    d="M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.8"
@@ -1882,15 +1882,7 @@ function App() {
                     strokeLinejoin="round"
                   />
                   <path
-                    d="m8.5 10.5 3.5 3.5 3.5-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M6 18h12"
+                    d="M12 4v1.5M12 18.5V20M4 12h1.5M18.5 12H20M6.4 6.4l1.1 1.1M16.5 16.5l1.1 1.1M17.6 6.4l-1.1 1.1M7.5 16.5l-1.1 1.1"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.8"
@@ -2095,12 +2087,39 @@ function App() {
                 : 'Follow is paused'}
             </span>
             <button
-              className="button subtle-button"
+              className="button subtle-button icon-button"
               type="button"
               onClick={() => scrollProxyLogsToTop({ smooth: true })}
               disabled={proxyLogs.length === 0}
+              aria-label="Scroll to top"
+              title="Scroll to top"
             >
-              Scroll Up
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 19V9"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="m7.5 12.5 4.5-4.5 4.5 4.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.5 4.5h13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         </section>

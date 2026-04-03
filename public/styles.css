@@ -992,13 +992,19 @@ code {
 
 .proxy-log-filter-field input,
 .proxy-log-filter-field select {
+  display: block;
   width: 100%;
-  min-height: 38px;
-  padding: 8px 12px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  line-height: 1.2;
 }
 
 .proxy-log-filter-field select {
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
 }
 
 .proxy-log-filter-field-wide {
