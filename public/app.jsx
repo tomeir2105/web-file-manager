@@ -16,12 +16,19 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
+const LOG_TYPE_OPTIONS = ['ALL', 'BLOCKED', 'ERROR', 'HTTP', 'LOGFILTER', 'REFRESH', 'REQUEST', 'STARTED', 'STOPPED', 'STREAM', 'TORRENT', 'TRANSMISSION', 'WHITELIST'];
+
 const isSubtitleFile = (name) => name.toLowerCase().endsWith('.srt');
 const isVideoFile = (name) => ['.mp4', '.mkv'].some((extension) => name.toLowerCase().endsWith(extension));
 const APP_VERSION = '1.0.0';
-const stripLogTimestamp = (entry) => String(entry || '').replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '');
+const getLogEntryRaw = (entry) => String(entry?.raw || entry || '');
+const getLogEntryMessage = (entry) => String(entry?.message || '').trim() || getLogEntryRaw(entry).replace(/^#\d+\s+\[\d{2}:\d{2}:\d{2}\]\s*/, '').replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trim();
+const getLogEntryNumber = (entry) => (Number.isFinite(Number(entry?.number)) ? Number(entry.number) : null);
+const stripLogTimestamp = (entry) => getLogEntryMessage(entry);
 const truncateLogLine = (entry, maxLength = 80) => {
-  const text = stripLogTimestamp(entry);
+  const number = getLogEntryNumber(entry);
+  const prefix = number !== null ? `#${number} ` : '';
+  const text = `${prefix}${stripLogTimestamp(entry)}`;
   return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
 };
 const extractUrlFromLogEntry = (entry) => {
@@ -109,6 +116,18 @@ function App() {
   const [copyLogsLoading, setCopyLogsLoading] = useState(false);
   const [proxyLogsLoading, setProxyLogsLoading] = useState(isProxyPage);
   const [proxyLogs, setProxyLogs] = useState([]);
+  const [proxyLogTypes, setProxyLogTypes] = useState(LOG_TYPE_OPTIONS);
+  const [proxyLogFilterType, setProxyLogFilterType] = useState('ALL');
+  const [proxyLogSearch, setProxyLogSearch] = useState('');
+  const [proxyLogFromNumber, setProxyLogFromNumber] = useState('');
+  const [proxyLogToNumber, setProxyLogToNumber] = useState('');
+  const [proxyLogMeta, setProxyLogMeta] = useState({
+    total: 0,
+    visibleCount: 0,
+    storedCount: 0,
+    firstNumber: null,
+    lastNumber: null,
+  });
   const [logEntryModalOpen, setLogEntryModalOpen] = useState(false);
   const [logEntryValue, setLogEntryValue] = useState('');
   const [logEntryMode, setLogEntryMode] = useState('hide');
@@ -302,9 +321,34 @@ function App() {
     }
 
     try {
-      const payload = await callJson('/api/proxy/logs?limit=500');
+      const params = new URLSearchParams();
+      params.set('limit', '500');
+      if (proxyLogFilterType && proxyLogFilterType !== 'ALL') {
+        params.set('type', proxyLogFilterType);
+      }
+      if (proxyLogSearch.trim()) {
+        params.set('search', proxyLogSearch.trim());
+      }
+      if (proxyLogFromNumber.trim()) {
+        params.set('fromNumber', proxyLogFromNumber.trim());
+      }
+      if (proxyLogToNumber.trim()) {
+        params.set('toNumber', proxyLogToNumber.trim());
+      }
+
+      const payload = await callJson(`/api/proxy/logs?${params.toString()}`);
       const entries = Array.isArray(payload.entries) ? payload.entries : [];
       setProxyLogs(entries);
+      setProxyLogTypes(
+        Array.from(new Set(['ALL', ...LOG_TYPE_OPTIONS, ...(Array.isArray(payload.availableTypes) ? payload.availableTypes : [])]))
+      );
+      setProxyLogMeta({
+        total: Number(payload.total) || entries.length,
+        visibleCount: Number(payload.checkpoints?.visibleCount) || 0,
+        storedCount: Number(payload.checkpoints?.storedCount) || 0,
+        firstNumber: payload.checkpoints?.firstNumber ?? null,
+        lastNumber: payload.checkpoints?.lastNumber ?? null,
+      });
       applyProxyStatus(payload);
     } catch (error) {
       if (!silent) {
@@ -320,6 +364,40 @@ function App() {
   const handleRefreshProxyLogs = async () => {
     await fetchLogFilters({ silent: true });
     await fetchProxyLogs();
+  };
+
+  const handleProxyLogFilterSubmit = async (event) => {
+    event.preventDefault();
+    await fetchProxyLogs();
+  };
+
+  const handleResetProxyLogFilters = async () => {
+    setProxyLogFilterType('ALL');
+    setProxyLogSearch('');
+    setProxyLogFromNumber('');
+    setProxyLogToNumber('');
+    setProxyLogsLoading(true);
+
+    try {
+      const payload = await callJson('/api/proxy/logs?limit=500');
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      setProxyLogs(entries);
+      setProxyLogTypes(
+        Array.from(new Set(['ALL', ...LOG_TYPE_OPTIONS, ...(Array.isArray(payload.availableTypes) ? payload.availableTypes : [])]))
+      );
+      setProxyLogMeta({
+        total: Number(payload.total) || entries.length,
+        visibleCount: Number(payload.checkpoints?.visibleCount) || 0,
+        storedCount: Number(payload.checkpoints?.storedCount) || 0,
+        firstNumber: payload.checkpoints?.firstNumber ?? null,
+        lastNumber: payload.checkpoints?.lastNumber ?? null,
+      });
+      applyProxyStatus(payload);
+    } catch (error) {
+      showNotification('error', error.message);
+    } finally {
+      setProxyLogsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -392,7 +470,7 @@ function App() {
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, [isProxyPage]);
+  }, [isProxyPage, proxyLogFilterType, proxyLogSearch, proxyLogFromNumber, proxyLogToNumber]);
 
   useEffect(() => {
     if (isProxyPage) {
@@ -803,6 +881,13 @@ function App() {
         method: 'POST',
       });
       setProxyLogs([]);
+      setProxyLogMeta({
+        total: 0,
+        visibleCount: 0,
+        storedCount: 0,
+        firstNumber: null,
+        lastNumber: null,
+      });
       showNotification('success', 'Proxy logs cleared');
     } catch (error) {
       showNotification('error', error.message);
@@ -814,7 +899,7 @@ function App() {
   const handleCopyProxyLogs = async () => {
     setCopyLogsLoading(true);
     try {
-      const contents = proxyLogs.map((entry) => stripLogTimestamp(entry)).join('\n');
+      const contents = proxyLogs.map((entry) => getLogEntryRaw(entry)).join('\n');
       await copyText(contents);
       showNotification('success', 'Proxy logs copied');
     } catch (error) {
@@ -1564,8 +1649,8 @@ function App() {
           <strong>{whitelistEntries.length}</strong>
         </article>
         <article className="glass-panel stat-card">
-          <span>Live Log Lines</span>
-          <strong>{proxyLogs.length}</strong>
+          <span>Visible Log Lines</span>
+          <strong>{proxyLogMeta.total}</strong>
         </article>
         <article className="glass-panel stat-card">
           <span>Started</span>
@@ -1661,6 +1746,9 @@ function App() {
           <div className="proxy-section-header">
             <div>
               <p className="eyebrow">Live Activity</p>
+              <p className="subtle">
+                Showing {proxyLogs.length} of {proxyLogMeta.total} filtered entries, from {proxyLogMeta.visibleCount} visible and {proxyLogMeta.storedCount} stored lines.
+              </p>
             </div>
             <div className="proxy-section-actions">
               <button
@@ -1757,17 +1845,71 @@ function App() {
               </button>
             </div>
           </div>
+          <form className="proxy-log-filter-bar" onSubmit={handleProxyLogFilterSubmit}>
+            <label className="proxy-log-filter-field">
+              <span>Type</span>
+              <select value={proxyLogFilterType} onChange={(event) => setProxyLogFilterType(event.target.value)}>
+                {proxyLogTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="proxy-log-filter-field proxy-log-filter-field-wide">
+              <span>Search</span>
+              <input
+                type="text"
+                value={proxyLogSearch}
+                onChange={(event) => setProxyLogSearch(event.target.value)}
+                placeholder="Search host, URL, or message"
+              />
+            </label>
+            <label className="proxy-log-filter-field">
+              <span>From #</span>
+              <input
+                type="number"
+                min="1"
+                value={proxyLogFromNumber}
+                onChange={(event) => setProxyLogFromNumber(event.target.value)}
+                placeholder={proxyLogMeta.firstNumber ?? '1'}
+              />
+            </label>
+            <label className="proxy-log-filter-field">
+              <span>To #</span>
+              <input
+                type="number"
+                min="1"
+                value={proxyLogToNumber}
+                onChange={(event) => setProxyLogToNumber(event.target.value)}
+                placeholder={proxyLogMeta.lastNumber ?? '500'}
+              />
+            </label>
+            <div className="proxy-log-filter-actions">
+              <button className="button primary" type="submit" disabled={proxyLogsLoading}>
+                {proxyLogsLoading ? 'Filtering...' : 'Apply'}
+              </button>
+              <button className="button secondary" type="button" onClick={handleResetProxyLogFilters} disabled={proxyLogsLoading}>
+                Reset
+              </button>
+            </div>
+            <div className="proxy-log-filter-summary">
+              Checkpoints: {proxyLogMeta.firstNumber ?? '-'} to {proxyLogMeta.lastNumber ?? '-'}
+            </div>
+          </form>
           {proxyLogsLoading && proxyLogs.length === 0 ? (
             <div className="empty-state">Loading proxy logs...</div>
           ) : proxyLogs.length === 0 ? (
-            <div className="empty-state">No proxy events logged yet.</div>
+            <div className="empty-state">
+              {proxyLogMeta.storedCount === 0 ? 'No proxy events logged yet.' : 'No proxy events matched the current filter.'}
+            </div>
           ) : (
             <div className="proxy-log-box" ref={logBoxRef} aria-live="polite">
               {proxyLogs.map((entry, index) => (
                 <button
                   className="proxy-log-line proxy-log-line-button"
                   type="button"
-                  key={`${index}-${entry}`}
+                  key={`${index}-${getLogEntryRaw(entry)}`}
                   onClick={() => handleOpenLogEntryModal(entry)}
                   title="Add this row to Log filter or Whitelist"
                 >

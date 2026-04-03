@@ -54,6 +54,28 @@ let transmissionSessionId = '';
 let proxyStarting = false;
 let lastLoggedLine = '';
 let hiddenLogCounts = Object.create(null);
+let lastLogSequenceNumber = null;
+
+function getNextLogSequenceNumber() {
+  if (Number.isFinite(lastLogSequenceNumber)) {
+    lastLogSequenceNumber += 1;
+    return lastLogSequenceNumber;
+  }
+
+  const entries = readRawLogEntries();
+  lastLogSequenceNumber = 0;
+
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const parsedEntry = parseLogEntry(entries[index]);
+    if (parsedEntry.number !== null) {
+      lastLogSequenceNumber = parsedEntry.number;
+      break;
+    }
+  }
+
+  lastLogSequenceNumber += 1;
+  return lastLogSequenceNumber;
+}
 
 function log(line) {
   const hiddenEntry = isFilteredLogHost(extractHostnameFromLogLine(line));
@@ -70,7 +92,8 @@ function log(line) {
   const timestamp = [now.getHours(), now.getMinutes(), now.getSeconds()]
     .map((value) => String(value).padStart(2, '0'))
     .join(':');
-  const entry = `[${timestamp}] ${line}\n`;
+  const sequenceNumber = getNextLogSequenceNumber();
+  const entry = `#${sequenceNumber} [${timestamp}] ${line}\n`;
 
   fs.appendFile(PROXY_LOG_FILE, entry, () => {
     fs.readFile(PROXY_LOG_FILE, 'utf8', (readError, contents) => {
@@ -734,7 +757,7 @@ function getLogFilterResponse() {
 }
 
 function extractHostnameFromLogLine(line) {
-  const rawLine = String(line || '').replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, '').trim();
+  const rawLine = getLogMessage(line);
   if (!rawLine) {
     return '';
   }
@@ -772,6 +795,7 @@ function readRawLogEntries() {
     return contents.split(/\r?\n/).filter(Boolean);
   } catch (error) {
     if (error.code === 'ENOENT') {
+      lastLogSequenceNumber = 0;
       return [];
     }
 
@@ -779,9 +803,147 @@ function readRawLogEntries() {
   }
 }
 
-function readRecentLogEntries(limit = MAX_PROXY_LOG_LINES) {
-  const lines = readRawLogEntries().filter(shouldIncludeLogLine);
-  return lines.slice(-Math.max(1, limit));
+function parseLogEntry(line, fallbackNumber = null) {
+  const raw = String(line || '').trim();
+  const numberedMatch = raw.match(/^#(\d+)\s+\[(\d{2}:\d{2}:\d{2})\]\s+(.+)$/);
+  if (numberedMatch) {
+    const message = numberedMatch[3].trim();
+    return {
+      raw,
+      number: Number(numberedMatch[1]),
+      timestamp: numberedMatch[2],
+      type: getLogType(message),
+      message,
+    };
+  }
+
+  const legacyMatch = raw.match(/^\[(\d{2}:\d{2}:\d{2})\]\s+(.+)$/);
+  if (legacyMatch) {
+    const message = legacyMatch[2].trim();
+    return {
+      raw,
+      number: fallbackNumber,
+      timestamp: legacyMatch[1],
+      type: getLogType(message),
+      message,
+    };
+  }
+
+  return {
+    raw,
+    number: fallbackNumber,
+    timestamp: '',
+    type: getLogType(raw),
+    message: raw,
+  };
+}
+
+function getLogMessage(line) {
+  return parseLogEntry(line).message;
+}
+
+function getLogType(message) {
+  const normalizedMessage = String(message || '').trim();
+  const typeMatch = normalizedMessage.match(/^([A-Z]+)\b/);
+  return typeMatch?.[1] || 'OTHER';
+}
+
+function normalizeLogSearchValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeLogTypeFilter(value) {
+  const normalizedType = String(value || '').trim().toUpperCase();
+  return normalizedType && normalizedType !== 'ALL' ? normalizedType : '';
+}
+
+function normalizeLogNumberFilter(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.max(1, Math.trunc(parsed));
+}
+
+function buildLogEntries() {
+  let fallbackNumber = 1;
+
+  return readRawLogEntries().map((line) => {
+    const entry = parseLogEntry(line, fallbackNumber);
+    if (entry.number !== null) {
+      fallbackNumber = entry.number + 1;
+    } else {
+      fallbackNumber += 1;
+    }
+
+    return entry;
+  });
+}
+
+function filterLogEntries(entries, options = {}) {
+  const includeHidden = Boolean(options.includeHidden);
+  const type = normalizeLogTypeFilter(options.type);
+  const search = normalizeLogSearchValue(options.search);
+  const fromNumber = normalizeLogNumberFilter(options.fromNumber);
+  const toNumber = normalizeLogNumberFilter(options.toNumber);
+
+  return (entries || []).filter((entry) => {
+    if (!includeHidden && !shouldIncludeLogLine(entry.raw)) {
+      return false;
+    }
+
+    if (type && entry.type !== type) {
+      return false;
+    }
+
+    if (search) {
+      const haystack = `${String(entry.raw || '')}\n${String(entry.message || '')}`.toLowerCase();
+      if (!haystack.includes(search)) {
+        return false;
+      }
+    }
+
+    if (fromNumber !== null && (entry.number === null || entry.number < fromNumber)) {
+      return false;
+    }
+
+    if (toNumber !== null && (entry.number === null || entry.number > toNumber)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function readRecentLogEntries(options = {}) {
+  const requestedLimit = Number(options.limit ?? MAX_PROXY_LOG_LINES);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 500)
+    : MAX_PROXY_LOG_LINES;
+  const allEntries = buildLogEntries();
+  const filteredEntries = filterLogEntries(allEntries, options);
+
+  return {
+    entries: filteredEntries.slice(-limit),
+    total: filteredEntries.length,
+    limit,
+    totalAvailable: allEntries.length,
+  };
+}
+
+function getAvailableLogTypes(entries) {
+  return Array.from(
+    new Set(
+      (entries || [])
+        .map((entry) => String(entry.type || '').trim())
+        .filter(Boolean)
+    )
+  ).sort((left, right) => left.localeCompare(right));
 }
 
 router.get('/status', (_req, res) => {
@@ -984,16 +1146,35 @@ router.post('/log-filters/reset-counts', (_req, res) => {
 
 router.get('/logs', (req, res, next) => {
   try {
-    const requestedLimit = Number(req.query.limit || MAX_PROXY_LOG_LINES);
-    const limit = Number.isFinite(requestedLimit)
-      ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 500)
-      : MAX_PROXY_LOG_LINES;
-    const entries = readRecentLogEntries(limit);
+    const result = readRecentLogEntries({
+      limit: req.query.limit,
+      type: req.query.type,
+      search: req.query.search,
+      fromNumber: req.query.fromNumber,
+      toNumber: req.query.toNumber,
+    });
+    const allEntries = buildLogEntries();
+    const visibleEntries = filterLogEntries(allEntries);
 
     res.json({
-      entries,
-      count: entries.length,
-      limit,
+      entries: result.entries,
+      count: result.entries.length,
+      total: result.total,
+      limit: result.limit,
+      availableTypes: getAvailableLogTypes(visibleEntries),
+      filters: {
+        type: normalizeLogTypeFilter(req.query.type) || 'ALL',
+        search: String(req.query.search || '').trim(),
+        fromNumber: normalizeLogNumberFilter(req.query.fromNumber),
+        toNumber: normalizeLogNumberFilter(req.query.toNumber),
+      },
+      checkpoints: {
+        firstNumber: visibleEntries.find((entry) => entry.number !== null)?.number ?? null,
+        lastNumber:
+          [...visibleEntries].reverse().find((entry) => entry.number !== null)?.number ?? null,
+        visibleCount: visibleEntries.length,
+        storedCount: allEntries.length,
+      },
       ...getStatus(),
     });
   } catch (error) {
@@ -1043,6 +1224,7 @@ router.post('/clear-logs', (_req, res, next) => {
   try {
     fs.writeFileSync(PROXY_LOG_FILE, '');
     lastLoggedLine = '';
+    lastLogSequenceNumber = 0;
     hiddenLogCounts = Object.create(null);
     res.json({
       message: 'Proxy logs cleared',

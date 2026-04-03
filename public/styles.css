@@ -951,6 +951,45 @@ code {
   line-height: 1.55;
 }
 
+.proxy-log-filter-bar {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 140px minmax(220px, 1fr) 120px 120px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.proxy-log-filter-field {
+  display: grid;
+  gap: 6px;
+}
+
+.proxy-log-filter-field span,
+.proxy-log-filter-summary {
+  font-size: 0.77rem;
+  color: rgba(216, 230, 247, 0.72);
+}
+
+.proxy-log-filter-field input,
+.proxy-log-filter-field select {
+  width: 100%;
+}
+
+.proxy-log-filter-field-wide {
+  min-width: 0;
+}
+
+.proxy-log-filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.proxy-log-filter-summary {
+  grid-column: 1 / -1;
+}
+
 .proxy-log-box::-webkit-scrollbar {
   width: 10px;
 }
@@ -1326,6 +1365,14 @@ code {
 
   .proxy-log-box {
     max-height: 320px;
+  }
+
+  .proxy-log-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .proxy-log-filter-actions {
+    justify-content: stretch;
   }
 
   .file-table {
