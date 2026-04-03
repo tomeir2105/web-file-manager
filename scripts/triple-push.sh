@@ -10,6 +10,8 @@ DOCKER_REPO="${DOCKER_REPO:-meir25/web-file-manager}"
 GIT_REMOTE="${GIT_REMOTE:-origin}"
 GIT_BRANCH="${GIT_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MESSAGE="${1:-}"
+CLEANUP_IMAGES="${CLEANUP_IMAGES:-1}"
+KEEP_DOCKER_SHA_COUNT="${KEEP_DOCKER_SHA_COUNT:-2}"
 
 print_step() {
   printf '\n==> %s\n' "$1"
@@ -24,6 +26,31 @@ require_command() {
 
 require_command git
 require_command docker
+
+cleanup_images() {
+  local current_sha="$1"
+
+  if [[ "${CLEANUP_IMAGES}" != "1" ]]; then
+    return
+  fi
+
+  print_step "Cleaning unused Docker images"
+
+  docker image prune -f >/dev/null || true
+
+  mapfile -t old_repo_tags < <(
+    docker image ls "${DOCKER_REPO}" --format '{{.Tag}}' \
+      | awk '!seen[$0]++' \
+      | grep -Ev '^(latest|<none>|'"${current_sha}"')$' \
+      | tail -n +"$((KEEP_DOCKER_SHA_COUNT + 1))"
+  )
+
+  if (( ${#old_repo_tags[@]} > 0 )); then
+    for tag in "${old_repo_tags[@]}"; do
+      docker image rm "${DOCKER_REPO}:${tag}" >/dev/null 2>&1 || true
+    done
+  fi
+}
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   printf 'Not inside a git repository.\n' >&2
@@ -59,7 +86,14 @@ docker push "${DOCKER_REPO}:${GIT_SHA}"
 print_step "Refreshing local compose container"
 docker compose up -d --build
 
+cleanup_images "${GIT_SHA}"
+
 print_step "Done"
 printf 'Git branch: %s\n' "${GIT_BRANCH}"
 printf 'Git commit: %s\n' "${GIT_SHA}"
 printf 'Docker tags: %s:latest, %s:%s\n' "${DOCKER_REPO}" "${DOCKER_REPO}" "${GIT_SHA}"
+if [[ "${CLEANUP_IMAGES}" == "1" ]]; then
+  printf 'Image cleanup: enabled (kept latest and %s recent SHA tags)\n' "${KEEP_DOCKER_SHA_COUNT}"
+else
+  printf 'Image cleanup: disabled\n'
+fi
