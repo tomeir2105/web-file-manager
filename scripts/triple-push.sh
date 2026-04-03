@@ -11,7 +11,6 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 GIT_BRANCH="${GIT_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 COMMIT_MESSAGE="${1:-}"
 CLEANUP_IMAGES="${CLEANUP_IMAGES:-1}"
-KEEP_DOCKER_SHA_COUNT="${KEEP_DOCKER_SHA_COUNT:-2}"
 
 print_step() {
   printf '\n==> %s\n' "$1"
@@ -28,8 +27,6 @@ require_command git
 require_command docker
 
 cleanup_images() {
-  local current_sha="$1"
-
   if [[ "${CLEANUP_IMAGES}" != "1" ]]; then
     return
   fi
@@ -41,8 +38,7 @@ cleanup_images() {
   mapfile -t old_repo_tags < <(
     docker image ls "${DOCKER_REPO}" --format '{{.Tag}}' \
       | awk '!seen[$0]++' \
-      | grep -Ev '^(latest|<none>|'"${current_sha}"')$' \
-      | tail -n +"$((KEEP_DOCKER_SHA_COUNT + 1))"
+      | grep -Ev '^(latest|<none>)$'
   )
 
   if (( ${#old_repo_tags[@]} > 0 )); then
@@ -93,7 +89,7 @@ printf 'Git branch: %s\n' "${GIT_BRANCH}"
 printf 'Git commit: %s\n' "${GIT_SHA}"
 printf 'Docker tags: %s:latest, %s:%s\n' "${DOCKER_REPO}" "${DOCKER_REPO}" "${GIT_SHA}"
 if [[ "${CLEANUP_IMAGES}" == "1" ]]; then
-  printf 'Image cleanup: enabled (kept latest and %s recent SHA tags)\n' "${KEEP_DOCKER_SHA_COUNT}"
+  printf 'Image cleanup: enabled (kept only %s:latest locally)\n' "${DOCKER_REPO}"
 else
   printf 'Image cleanup: disabled\n'
 fi
