@@ -32,7 +32,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -973,6 +974,12 @@ code {
 .proxy-log-filter-field input,
 .proxy-log-filter-field select {
   width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+
+.proxy-log-filter-field select {
+  appearance: none;
 }
 
 .proxy-log-filter-field-wide {
