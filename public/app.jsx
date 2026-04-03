@@ -164,6 +164,7 @@ function App() {
   const floatingToolsRef = useRef(null);
   const floatingToolsDragRef = useRef(null);
   const logBoxRef = useRef(null);
+  const proxyLogsRequestRef = useRef(0);
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -320,6 +321,9 @@ function App() {
   };
 
   const fetchProxyLogs = async ({ silent = false } = {}) => {
+    const requestId = proxyLogsRequestRef.current + 1;
+    proxyLogsRequestRef.current = requestId;
+
     if (!silent) {
       setProxyLogsLoading(true);
     }
@@ -341,6 +345,10 @@ function App() {
       }
 
       const payload = await callJson(`/api/proxy/logs?${params.toString()}`);
+      if (requestId !== proxyLogsRequestRef.current) {
+        return;
+      }
+
       const entries = Array.isArray(payload.entries) ? payload.entries : [];
       setProxyLogs(entries);
       setProxyLogTypes(
@@ -355,11 +363,15 @@ function App() {
       });
       applyProxyStatus(payload);
     } catch (error) {
+      if (requestId !== proxyLogsRequestRef.current) {
+        return;
+      }
+
       if (!silent) {
         showNotification('error', error.message);
       }
     } finally {
-      if (!silent) {
+      if (!silent && requestId === proxyLogsRequestRef.current) {
         setProxyLogsLoading(false);
       }
     }
