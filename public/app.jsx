@@ -480,7 +480,13 @@ function App() {
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, [isProxyPage]);
+  }, [
+    isProxyPage,
+    appliedProxyLogFilterType,
+    appliedProxyLogSearch,
+    appliedProxyLogFromNumber,
+    appliedProxyLogToNumber,
+  ]);
 
   useEffect(() => {
     if (!isProxyPage) {
