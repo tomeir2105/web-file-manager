@@ -121,6 +121,10 @@ function App() {
   const [proxyLogSearch, setProxyLogSearch] = useState('');
   const [proxyLogFromNumber, setProxyLogFromNumber] = useState('');
   const [proxyLogToNumber, setProxyLogToNumber] = useState('');
+  const [appliedProxyLogFilterType, setAppliedProxyLogFilterType] = useState('ALL');
+  const [appliedProxyLogSearch, setAppliedProxyLogSearch] = useState('');
+  const [appliedProxyLogFromNumber, setAppliedProxyLogFromNumber] = useState('');
+  const [appliedProxyLogToNumber, setAppliedProxyLogToNumber] = useState('');
   const [proxyLogMeta, setProxyLogMeta] = useState({
     total: 0,
     visibleCount: 0,
@@ -323,17 +327,17 @@ function App() {
     try {
       const params = new URLSearchParams();
       params.set('limit', '500');
-      if (proxyLogFilterType && proxyLogFilterType !== 'ALL') {
-        params.set('type', proxyLogFilterType);
+      if (appliedProxyLogFilterType && appliedProxyLogFilterType !== 'ALL') {
+        params.set('type', appliedProxyLogFilterType);
       }
-      if (proxyLogSearch.trim()) {
-        params.set('search', proxyLogSearch.trim());
+      if (appliedProxyLogSearch.trim()) {
+        params.set('search', appliedProxyLogSearch.trim());
       }
-      if (proxyLogFromNumber.trim()) {
-        params.set('fromNumber', proxyLogFromNumber.trim());
+      if (appliedProxyLogFromNumber.trim()) {
+        params.set('fromNumber', appliedProxyLogFromNumber.trim());
       }
-      if (proxyLogToNumber.trim()) {
-        params.set('toNumber', proxyLogToNumber.trim());
+      if (appliedProxyLogToNumber.trim()) {
+        params.set('toNumber', appliedProxyLogToNumber.trim());
       }
 
       const payload = await callJson(`/api/proxy/logs?${params.toString()}`);
@@ -368,7 +372,9 @@ function App() {
 
   const handleProxyLogFilterSubmit = async (event) => {
     event.preventDefault();
-    await fetchProxyLogs();
+    setAppliedProxyLogSearch(proxyLogSearch);
+    setAppliedProxyLogFromNumber(proxyLogFromNumber);
+    setAppliedProxyLogToNumber(proxyLogToNumber);
   };
 
   const handleResetProxyLogFilters = async () => {
@@ -376,6 +382,10 @@ function App() {
     setProxyLogSearch('');
     setProxyLogFromNumber('');
     setProxyLogToNumber('');
+    setAppliedProxyLogFilterType('ALL');
+    setAppliedProxyLogSearch('');
+    setAppliedProxyLogFromNumber('');
+    setAppliedProxyLogToNumber('');
     setProxyLogsLoading(true);
 
     try {
@@ -470,7 +480,15 @@ function App() {
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, [isProxyPage, proxyLogFilterType, proxyLogSearch, proxyLogFromNumber, proxyLogToNumber]);
+  }, [isProxyPage]);
+
+  useEffect(() => {
+    if (!isProxyPage) {
+      return;
+    }
+
+    fetchProxyLogs({ silent: true });
+  }, [isProxyPage, appliedProxyLogFilterType, appliedProxyLogSearch, appliedProxyLogFromNumber, appliedProxyLogToNumber]);
 
   useEffect(() => {
     if (isProxyPage) {
@@ -1848,7 +1866,14 @@ function App() {
           <form className="proxy-log-filter-bar" onSubmit={handleProxyLogFilterSubmit}>
             <label className="proxy-log-filter-field">
               <span>Type</span>
-              <select value={proxyLogFilterType} onChange={(event) => setProxyLogFilterType(event.target.value)}>
+              <select
+                value={proxyLogFilterType}
+                onChange={(event) => {
+                  const nextType = event.target.value;
+                  setProxyLogFilterType(nextType);
+                  setAppliedProxyLogFilterType(nextType);
+                }}
+              >
                 {proxyLogTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}

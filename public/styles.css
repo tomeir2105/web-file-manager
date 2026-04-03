@@ -955,8 +955,8 @@ code {
 .proxy-log-filter-bar {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: 140px minmax(220px, 1fr) 120px 120px auto;
-  gap: 12px;
+  grid-template-columns: 124px minmax(190px, 1fr) 104px 104px auto;
+  gap: 10px;
   align-items: end;
 }
 
@@ -974,8 +974,8 @@ code {
 .proxy-log-filter-field input,
 .proxy-log-filter-field select {
   width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
+  min-height: 38px;
+  padding: 8px 12px;
 }
 
 .proxy-log-filter-field select {
