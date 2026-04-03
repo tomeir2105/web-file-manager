@@ -722,6 +722,11 @@ code {
   align-items: center;
 }
 
+.proxy-section-actions .icon-button.is-active {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(106, 227, 255, 0.28);
+}
+
 .whitelist-badge {
   padding: 5px 9px;
   border-radius: 999px;
@@ -950,6 +955,20 @@ code {
   font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 0.84rem;
   line-height: 1.55;
+}
+
+.proxy-log-footer {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.proxy-log-follow-status {
+  color: rgba(216, 230, 247, 0.72);
+  font-size: 0.82rem;
 }
 
 .proxy-log-filter-bar {
@@ -1372,6 +1391,10 @@ code {
 
   .proxy-log-box {
     max-height: 320px;
+  }
+
+  .proxy-log-footer {
+    align-items: stretch;
   }
 
   .proxy-log-filter-bar {

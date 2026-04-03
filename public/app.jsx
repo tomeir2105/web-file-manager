@@ -125,6 +125,8 @@ function App() {
   const [appliedProxyLogSearch, setAppliedProxyLogSearch] = useState('');
   const [appliedProxyLogFromNumber, setAppliedProxyLogFromNumber] = useState('');
   const [appliedProxyLogToNumber, setAppliedProxyLogToNumber] = useState('');
+  const [proxyLogFollowEnabled, setProxyLogFollowEnabled] = useState(true);
+  const [proxyLogAtBottom, setProxyLogAtBottom] = useState(true);
   const [proxyLogMeta, setProxyLogMeta] = useState({
     total: 0,
     visibleCount: 0,
@@ -165,6 +167,41 @@ function App() {
   const floatingToolsDragRef = useRef(null);
   const logBoxRef = useRef(null);
   const proxyLogsRequestRef = useRef(0);
+
+  const isLogBoxNearBottom = () => {
+    const logBox = logBoxRef.current;
+    if (!logBox) {
+      return true;
+    }
+
+    return logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight <= 24;
+  };
+
+  const scrollProxyLogsToBottom = ({ smooth = false } = {}) => {
+    const logBox = logBoxRef.current;
+    if (!logBox) {
+      return;
+    }
+
+    logBox.scrollTo({
+      top: logBox.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto',
+    });
+    setProxyLogAtBottom(true);
+  };
+
+  const scrollProxyLogsToTop = ({ smooth = false } = {}) => {
+    const logBox = logBoxRef.current;
+    if (!logBox) {
+      return;
+    }
+
+    logBox.scrollTo({
+      top: 0,
+      behavior: smooth ? 'smooth' : 'auto',
+    });
+    setProxyLogAtBottom(false);
+  };
 
   const showNotification = (type, message) => {
     setNotification({ type, message });
@@ -507,6 +544,14 @@ function App() {
 
     fetchProxyLogs({ silent: true });
   }, [isProxyPage, appliedProxyLogFilterType, appliedProxyLogSearch, appliedProxyLogFromNumber, appliedProxyLogToNumber]);
+
+  useEffect(() => {
+    if (!isProxyPage || !proxyLogFollowEnabled || !proxyLogAtBottom) {
+      return;
+    }
+
+    scrollProxyLogsToBottom();
+  }, [isProxyPage, proxyLogs, proxyLogFollowEnabled, proxyLogAtBottom]);
 
   useEffect(() => {
     if (isProxyPage) {
@@ -1814,6 +1859,81 @@ function App() {
                   />
                 </svg>
               </button>
+              <button
+                className={`button subtle-button icon-button ${proxyLogFollowEnabled ? 'is-active' : ''}`}
+                type="button"
+                onClick={() => {
+                  const nextFollowEnabled = !proxyLogFollowEnabled;
+                  setProxyLogFollowEnabled(nextFollowEnabled);
+                  if (nextFollowEnabled) {
+                    scrollProxyLogsToBottom({ smooth: true });
+                  }
+                }}
+                aria-label={proxyLogFollowEnabled ? 'Disable live follow' : 'Enable live follow'}
+                title={proxyLogFollowEnabled ? 'Disable live follow' : 'Enable live follow'}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 4v9"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="m8.5 10.5 3.5 3.5 3.5-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M6 18h12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <button
+                className="button subtle-button icon-button"
+                type="button"
+                onClick={() => scrollProxyLogsToBottom({ smooth: true })}
+                disabled={proxyLogs.length === 0}
+                aria-label="Scroll to bottom"
+                title="Scroll to bottom"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5v10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="m7.5 11.5 4.5 4.5 4.5-4.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M5.5 19.5h13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
               <a
                 className="button subtle-button icon-button"
                 href="/api/proxy/logs/text"
@@ -1947,7 +2067,12 @@ function App() {
               {proxyLogMeta.storedCount === 0 ? 'No proxy events logged yet.' : 'No proxy events matched the current filter.'}
             </div>
           ) : (
-            <div className="proxy-log-box" ref={logBoxRef} aria-live="polite">
+            <div
+              className="proxy-log-box"
+              ref={logBoxRef}
+              aria-live="polite"
+              onScroll={() => setProxyLogAtBottom(isLogBoxNearBottom())}
+            >
               {proxyLogs.map((entry, index) => (
                 <button
                   className="proxy-log-line proxy-log-line-button"
@@ -1961,6 +2086,23 @@ function App() {
               ))}
             </div>
           )}
+          <div className="proxy-log-footer">
+            <span className="proxy-log-follow-status">
+              {proxyLogFollowEnabled
+                ? proxyLogAtBottom
+                  ? 'Following new log lines'
+                  : 'Follow is armed, scroll to bottom to resume tracking'
+                : 'Follow is paused'}
+            </span>
+            <button
+              className="button subtle-button"
+              type="button"
+              onClick={() => scrollProxyLogsToTop({ smooth: true })}
+              disabled={proxyLogs.length === 0}
+            >
+              Scroll Up
+            </button>
+          </div>
         </section>
 
         <section className="glass-panel whitelist-panel">
